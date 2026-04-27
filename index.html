@@ -1299,47 +1299,80 @@
       self.__next_f.push([1, '21:"$1c:metadata"\n']);
     </script>
     <script>
-      (function injectLegalLinks() {
-        function inject() {
-          var copyright = document.querySelector('footer p');
-          if (!copyright) return false;
-          if (document.getElementById('legal-links')) return true;
-          var wrapper = document.createElement('div');
-          wrapper.id = 'legal-links';
-          wrapper.style.cssText = 'display:flex;align-items:center;gap:16px;margin-top:12px;';
-          var docIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
-          var linkStyle = 'display:inline-flex;align-items:center;gap:6px;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;font-family:inherit;transition:color 0.2s;';
-          var tou = document.createElement('a');
-          tou.href = '/ToU.pdf';
-          tou.target = '_blank';
-          tou.rel = 'noopener noreferrer';
-          tou.innerHTML = docIcon + 'Terms of Use';
+      (function () {
+        var docIcon =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+        var linkStyle =
+          "display:inline-flex;align-items:center;gap:6px;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;font-family:inherit;";
+
+        function buildLinks() {
+          var wrapper = document.createElement("div");
+          wrapper.id = "legal-links";
+          wrapper.style.cssText = "display:flex;align-items:center;gap:16px;margin-top:12px;";
+
+          var tou = document.createElement("a");
+          tou.href = "/ToU.pdf";
+          tou.target = "_blank";
+          tou.rel = "noopener noreferrer";
+          tou.innerHTML = docIcon + "Terms of Use";
           tou.style.cssText = linkStyle;
-          tou.onmouseover = function() { this.style.color = '#F5A623'; };
-          tou.onmouseout  = function() { this.style.color = '#555'; };
-          var sep = document.createElement('span');
-          sep.textContent = '·';
-          sep.style.cssText = 'color:#333;font-size:10px;';
-          var ref = document.createElement('a');
-          ref.href = '/RefundPolicy.pdf';
-          ref.target = '_blank';
-          ref.rel = 'noopener noreferrer';
-          ref.innerHTML = docIcon + 'Refund Policy';
+          tou.onmouseover = function () { this.style.color = "#F5A623"; };
+          tou.onmouseout = function () { this.style.color = "#555"; };
+
+          var sep = document.createElement("span");
+          sep.textContent = "·";
+          sep.style.cssText = "color:#333;font-size:10px;";
+
+          var ref = document.createElement("a");
+          ref.href = "/RefundPolicy.pdf";
+          ref.target = "_blank";
+          ref.rel = "noopener noreferrer";
+          ref.innerHTML = docIcon + "Refund Policy";
           ref.style.cssText = linkStyle;
-          ref.onmouseover = function() { this.style.color = '#F5A623'; };
-          ref.onmouseout  = function() { this.style.color = '#555'; };
+          ref.onmouseover = function () { this.style.color = "#F5A623"; };
+          ref.onmouseout = function () { this.style.color = "#555"; };
+
           wrapper.appendChild(tou);
           wrapper.appendChild(sep);
           wrapper.appendChild(ref);
-          copyright.parentNode.insertBefore(wrapper, copyright.nextSibling);
+          return wrapper;
+        }
+
+        function findAnchor() {
+          /* Look for the "All rights reserved" paragraph inside the footer */
+          var footer = document.getElementById("contact");
+          if (!footer) return null;
+          var paras = footer.querySelectorAll("p");
+          for (var i = 0; i < paras.length; i++) {
+            if (paras[i].textContent.indexOf("All rights reserved") !== -1) {
+              return paras[i];
+            }
+          }
+          return null;
+        }
+
+        function inject() {
+          /* Remove stale copy first (React may have wiped it) */
+          var old = document.getElementById("legal-links");
+          if (old) old.parentNode.removeChild(old);
+
+          var anchor = findAnchor();
+          if (!anchor) return false;
+
+          anchor.parentNode.insertBefore(buildLinks(), anchor.nextSibling);
           return true;
         }
-        if (!inject()) {
-          var observer = new MutationObserver(function() {
-            if (inject()) observer.disconnect();
-          });
-          observer.observe(document.body, { childList: true, subtree: true });
-        }
+
+        /* Poll every 400 ms for 15 s to survive React hydration & re-renders */
+        var tries = 0;
+        var timer = setInterval(function () {
+          var existing = document.getElementById("legal-links");
+          /* Re-inject if missing OR if it got detached from the footer */
+          if (!existing || !document.getElementById("contact").contains(existing)) {
+            inject();
+          }
+          if (++tries >= 38) clearInterval(timer); /* stop after ~15 s */
+        }, 400);
       })();
     </script>
     <next-route-announcer style="position: absolute"
